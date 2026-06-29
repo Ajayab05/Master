@@ -1,0 +1,109 @@
+name: Security Scan
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+
+  pull_request:
+    branches:
+      - main
+      - develop
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+env:
+  TF_VERSION: 1.15.7
+
+jobs:
+
+  security-scan:
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform/environments/dev
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      #################################################
+      # Terraform
+      #################################################
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      #################################################
+      # Terraform Init
+      #################################################
+
+      - name: Terraform Init
+        run: terraform init -backend=false
+
+      #################################################
+      # Terraform Validate
+      #################################################
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      #################################################
+      # TFLint
+      #################################################
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: Show TFLint Version
+        run: tflint --version
+
+      - name: Init TFLint
+        run: tflint --init
+
+      - name: Run TFLint
+        run: tflint --recursive
+
+      #################################################
+      # Checkov
+      #################################################
+
+      - name: Checkov Scan
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: terraform
+          framework: terraform
+
+      #################################################
+      # Trivy
+      #################################################
+
+      - name: Trivy Filesystem Scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          exit-code: 1
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+
+      #################################################
+      # Gitleaks
+      #################################################
+
+      - name: Secret Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
