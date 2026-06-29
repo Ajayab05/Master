@@ -1,0 +1,96 @@
+name: Cluster Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  CLUSTER_NAME: eks-upgrade-demo-dev
+
+jobs:
+  validate:
+
+    name: Validate EKS Cluster
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::076124125794:role/GitHubActionsTerraformRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: latest
+
+      - name: Configure kubeconfig
+        run: |
+          aws eks update-kubeconfig \
+            --name $CLUSTER_NAME \
+            --region $AWS_REGION
+
+      - name: Cluster Info
+        run: kubectl cluster-info
+
+      - name: Kubernetes Version
+        run: kubectl version
+
+      - name: Nodes
+        run: kubectl get nodes -o wide
+
+      - name: System Pods
+        run: kubectl get pods -n kube-system
+
+      - name: EKS Addons
+        run: |
+          aws eks list-addons \
+            --cluster-name $CLUSTER_NAME \
+            --region $AWS_REGION
+
+      - name: Storage Classes
+        run: kubectl get storageclass
+
+      - name: Persistent Volumes
+        run: kubectl get pv
+
+      - name: Persistent Volume Claims
+        run: kubectl get pvc -A
+
+      - name: Services
+        run: kubectl get svc -A
+
+      - name: Ingress
+        run: kubectl get ingress -A
+
+      - name: Deployments
+        run: kubectl get deployment -A
+
+      - name: DaemonSets
+        run: kubectl get daemonset -A
+
+      - name: StatefulSets
+        run: kubectl get statefulset -A
+
+      - name: Events
+        run: kubectl get events -A --sort-by=.lastTimestamp
+
+      - name: Verify EBS CSI Driver
+        run: |
+          kubectl get pods -n kube-system | grep ebs-csi
+
+      - name: Verify AWS Load Balancer Controller
+        run: |
+          kubectl get deployment \
+          -n kube-system \
+          aws-load-balancer-controller
