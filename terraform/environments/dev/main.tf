@@ -72,3 +72,30 @@ module "eks_addons" {
     module.ebs_csi_irsa
   ]
 }
+
+
+
+
+
+module "github_oidc" {
+
+  source = "../../modules/github-oidc"
+
+  github_org  = "Ajayab05"
+  github_repo = "Master"
+
+  allowed_branches = [
+    "main",
+    "develop"
+  ]
+
+  tags = {
+
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "Terraform"
+    Owner       = "Ajay"
+
+  }
+
+}
