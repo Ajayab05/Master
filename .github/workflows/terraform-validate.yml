@@ -1,35 +1,30 @@
-name: Terraform Validate
+name: Terraform Apply
 
 on:
-  push:
-    branches:
-      - main
-      - develop
-      - "feature/**"
-
-  pull_request:
-    branches:
-      - main
-      - develop
+  workflow_dispatch:
 
 permissions:
-  contents: read
   id-token: write
+  contents: read
 
 env:
   AWS_REGION: us-east-1
   TF_VERSION: 1.15.7
+  TF_WORKING_DIR: terraform/environments/dev
 
 jobs:
-  terraform-validate:
 
-    name: Terraform Validate
+  terraform-apply:
+
+    name: Terraform Apply
 
     runs-on: ubuntu-latest
 
+    environment: dev
+
     defaults:
       run:
-        working-directory: terraform/environments/dev
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
     steps:
 
@@ -47,14 +42,14 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Terraform Version
-        run: terraform version
-
-      - name: Terraform Format
-        run: terraform fmt -check -recursive
-
       - name: Terraform Init
         run: terraform init
 
       - name: Terraform Validate
         run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
