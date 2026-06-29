@@ -5,4 +5,4 @@ project_name = "eks-upgrade-demo"
 environment = "dev"
 
 
-cluster_version = "1.33"
+cluster_version = "1.34"
