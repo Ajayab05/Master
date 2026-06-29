@@ -99,3 +99,21 @@ module "github_oidc" {
   }
 
 }
+
+
+
+
+module "alb_controller" {
+
+  source = "../../modules/alb-controller"
+
+  cluster_name = module.eks.cluster_name
+
+  region = "us-east-1"
+
+  vpc_id = module.vpc.vpc_id
+
+  depends_on = [
+    module.eks_addons
+  ]
+}
